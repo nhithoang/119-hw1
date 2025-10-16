@@ -10,6 +10,10 @@ to report which one is faster.
 """
 
 import part1
+import matplotlib.pyplot as plt
+import time
+import pandas as pd
+import os
 
 """
 === Questions 1-5: Throughput and Latency Helpers ===
@@ -57,7 +61,9 @@ class ThroughputHelper:
         self.throughputs = None
 
     def add_pipeline(self, name, size, func):
-        raise NotImplementedError
+        self.names.append(name)
+        self.sizes.append(size)
+        self.pipelines.append(func)
 
     def compare_throughput(self):
         # Measure the throughput of all pipelines
@@ -65,7 +71,24 @@ class ThroughputHelper:
         # Make sure to use the NUM_RUNS variable.
         # Also, return the resulting list of throughputs,
         # in **number of items per second.**
-        raise NotImplementedError
+        throughputs = []
+
+        for name, size, func in zip(self.names, self.sizes, self.pipelines):
+            start = time.time()
+            for _ in range(NUM_RUNS):
+                func()
+            end = time.time()
+
+            elapsed = end - start
+            if elapsed == 0:
+                throughput = 0
+            else:
+                throughput = (size * NUM_RUNS) / elapsed
+
+            throughputs.append(throughput)
+
+        self.throughputs = throughputs
+        return throughputs
 
     def generate_plot(self, filename):
         # Generate a plot for throughput using matplotlib.
@@ -73,7 +96,19 @@ class ThroughputHelper:
         # the most sense.
         # Make sure you include a legend.
         # Save the result in the filename provided.
-        raise NotImplementedError
+        if self.throughputs is None:
+            raise ValueError("Run compare_throughput() before plotting.")
+
+        plt.figure()
+        plt.bar(self.names, self.throughputs, label="Throughput (items/sec)")
+        plt.title("Pipeline Throughput Comparison")
+        plt.xlabel("Pipeline")
+        plt.ylabel("Items per Second")
+        plt.legend()
+        plt.xticks(rotation=30, ha='right') # rotate x labels so they don't overlap 
+        plt.tight_layout()
+        plt.savefig(filename)
+        plt.close()
 
 """
 As your answer to this part,
@@ -85,7 +120,7 @@ matplotlib.
 
 def q1():
     # Return plot method (as a string) from matplotlib
-    raise NotImplementedError
+    return "bar chart"
 
 """
 2. A simple test case
@@ -104,20 +139,31 @@ LIST_LARGE = [10] * 100_000_000
 def add_list(l):
     # TODO
     # Please use a for loop (not a built-in)
-    raise NotImplementedError
+    total = 0
+    for x in l:
+        total += x
+    return total
 
 def q2a():
     # Create a ThroughputHelper object
     h = ThroughputHelper()
+
     # Add the 3 pipelines.
     # (You will need to create a pipeline for each one.)
     # Pipeline names: small, medium, large
-    raise NotImplementedError
+    h.add_pipeline("small", len(LIST_SMALL), lambda: add_list(LIST_SMALL))
+    h.add_pipeline("medium", len(LIST_MEDIUM), lambda: add_list(LIST_MEDIUM))
+    h.add_pipeline("large", len(LIST_LARGE), lambda: add_list(LIST_LARGE))
+    
     # Generate a plot.
     # Save the plot as 'output/part2-q2a.png'.
     # TODO
+    throughputs = h.compare_throughput()
+    h.generate_plot("output/part2-q2a.png")
+
     # Finally, return the throughputs as a list.
     # TODO
+    return throughputs
 
 """
 2b.
@@ -125,6 +171,7 @@ Which pipeline has the highest throughput?
 Is this what you expected?
 
 === ANSWER Q2b BELOW ===
+The large pipeline has the highest throughput followed by the medium, and then the small dataset. I would actually expect the smaller dataset to run faster, so this result is unexpected.
 
 === END OF Q2b ANSWER ===
 """
@@ -158,14 +205,24 @@ class LatencyHelper:
         self.latencies = None
 
     def add_pipeline(self, name, func):
-        raise NotImplementedError
+        self.names.append(name) # add pipeline name and function to lists
+        self.pipelines.append(func)
 
     def compare_latency(self):
         # Measure the latency of all pipelines
         # and store it in a list in self.latencies.
-        # Also, return the resulting list of latencies,
-        # in **milliseconds.**
-        raise NotImplementedError
+       # Also, return the resulting list of latencies in **milliseconds.**
+        latencies = []
+        for func in self.pipelines:
+            start = time.time()
+            for _ in range(NUM_RUNS):
+                func()
+            end = time.time()
+            avg_latency = ((end - start) / NUM_RUNS) * 1000  # convert seconds → ms
+            latencies.append(avg_latency)
+
+        self.latencies = latencies
+        return latencies
 
     def generate_plot(self, filename):
         # Generate a plot for latency using matplotlib.
@@ -173,7 +230,17 @@ class LatencyHelper:
         # the most sense.
         # Make sure you include a legend.
         # Save the result in the filename provided.
-        raise NotImplementedError
+        if self.latencies is None:
+            raise ValueError("Run compare_latency() before plotting.")
+
+        plt.bar(self.names, self.latencies, label="Latency (ms)") 
+        plt.title("Pipeline Latency Comparison")
+        plt.xlabel("Pipeline")
+        plt.ylabel("Latency (ms)")
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig(filename)
+        plt.close()
 
 """
 As your answer to this part,
@@ -184,7 +251,7 @@ process if the class is used correctly.
 def q3():
     # Return the number of input items in each dataset,
     # for the latency helper to run correctly.
-    raise NotImplementedError
+    return 1
 
 """
 4. To make sure your monitor is working, test it on
@@ -203,12 +270,19 @@ def q4a():
     # Create a LatencyHelper object
     h = LatencyHelper()
     # Add the single pipeline three times.
-    raise NotImplementedError
+    h.add_pipeline("run1", lambda: add_list(LIST_SINGLE_ITEM))
+    h.add_pipeline("run2", lambda: add_list(LIST_SINGLE_ITEM))
+    h.add_pipeline("run3", lambda: add_list(LIST_SINGLE_ITEM))
+   
     # Generate a plot.
     # Save the plot as 'output/part2-q4a.png'.
     # TODO
+    latencies = h.compare_latency()
+    h.generate_plot("output/part2-q4a.png")
+    
     # Finally, return the latencies as a list.
     # TODO
+    return latencies
 
 """
 4b.
@@ -216,7 +290,7 @@ How much did the latency vary between the three copies of the pipeline?
 Is this more or less than what you expected?
 
 === ANSWER Q4b BELOW ===
-
+The latency varied slightly between the three runs. Each run got a little faster. I think the small variation is expected because is expected because all pipelines perform the same simple operation.
 === END OF Q4b ANSWER ===
 """
 
@@ -233,16 +307,22 @@ of the pipeline in part 1.
 """
 
 # You will need these:
-# part1.load_input
-# part1.PART_1_PIPELINE
+part1.load_input
+part1.PART_1_PIPELINE
 
 def q5a():
     # Return the throughput of the pipeline in part 1.
-    raise NotImplementedError
+    h = ThroughputHelper()
+    h.add_pipeline("part1_pipeline", 1, lambda: part1.PART_1_PIPELINE())
+    throughputs = h.compare_throughput()
+    return throughputs[0]
 
 def q5b():
     # Return the latency of the pipeline in part 1.
-    raise NotImplementedError
+    h = LatencyHelper()
+    h.add_pipeline("part1_pipeline", lambda: part1.PART_1_PIPELINE())
+    latencies = h.compare_latency()
+    return latencies[0]
 
 """
 ===== Questions 6-10: Performance Comparison 1 =====
@@ -295,18 +375,52 @@ See if you can compute this using Pandas functions only.
 def load_input(filename):
     # Return a dataframe containing the population data
     # **Clean the data here**
-    raise NotImplementedError
+    df = pd.read_csv(filename)
+
+    # remove continents and world data
+    df.columns = ["entity", "code", "year", "population"]
+    df = df[~df["code"].str.startswith("OWID", na=False)]
+    df = df[df["entity"].str.lower() != "world"]
+
+    # drop rows with missing values
+    df = df.dropna(subset=["year", "population"])
+
+    return df
 
 def population_pipeline(df):
     # Input: the dataframe from load_input()
     # Return a list of min, median, max, mean, and standard deviation
-    raise NotImplementedError
+    grouped = df.groupby("entity")
+
+    result = grouped.apply(
+    lambda g: (g["population"].max() - g["population"].min())
+              / (g["year"].max() - g["year"].min())
+    if g["year"].nunique() > 1 else None,
+    include_groups=False
+)
+
+
+    # drop na values
+    result = result.dropna()
+
+    # summary stats
+    desc = result.describe()
+
+    # Return a list of min, median, max, mean, and standard deviation
+    return [
+        float(desc["min"]),
+        float(desc["50%"]),
+        float(desc["max"]),
+        float(desc["mean"]),
+        float(desc["std"])
+    ]
 
 def q6():
     # As your answer to this part,
     # call load_input() and then population_pipeline()
     # Return a list of min, median, max, mean, and standard deviation
-    raise NotImplementedError
+    df = load_input("data/population.csv")
+    return population_pipeline(df)
 
 """
 7. Varying the input size
@@ -327,24 +441,37 @@ You can edit the csv file directly to extract the first rows
 and save a new file.
 
 Make four versions of load input that load your datasets.
-(The _large one should use the full population dataset.)
+(The large one should use the full population dataset.)
 Each should return a dataframe.
 
 The input CSV file will have 600 rows, but the DataFrame (after your cleaning) may have less than that.
 """
+# create the files
+if not os.path.exists("data/population-small.csv"):
+    df = pd.read_csv("data/population.csv")
+    df.head(600).to_csv("data/population-small.csv", index=False)
+    df.head(6000).to_csv("data/population-medium.csv", index=False)
+    df.head(1).to_csv("data/population-single-row.csv", index=False)
 
+# first 600 rows
 def load_input_small():
-    raise NotImplementedError
+    df = load_input("data/population-small.csv")
+    return df
 
+# first 6000 rows
 def load_input_medium():
-    raise NotImplementedError
+    df = load_input("data/population-medium.csv")
+    return df
 
+# full population dataset
 def load_input_large():
-    raise NotImplementedError
+    df = load_input("data/population.csv") 
+    return df
 
 def load_input_single_row():
     # This is the pipeline we will use for latency.
-    raise NotImplementedError
+    df = load_input("data/population-single-row.csv")
+    return df
 
 def q7():
     # Don't modify this part
@@ -376,16 +503,22 @@ that you think is meaningful.
 """
 
 def baseline_small():
-    raise NotImplementedError
+    df = load_input_small()
+    return population_pipeline(df)
 
 def baseline_medium():
-    raise NotImplementedError
+    df = load_input_medium()
+    return population_pipeline(df)
 
 def baseline_large():
-    raise NotImplementedError
+    df = load_input_large()
+    return population_pipeline(df)
 
 def baseline_latency():
-    raise NotImplementedError
+    df = load_input_single_row() #not meaningful
+    if len(df) < 2: #If not meaningful, just take 2 rows from the small dataset
+        df = load_input_small().head(2)
+    return population_pipeline(df)
 
 def q8():
     # Don't modify this part
@@ -417,35 +550,59 @@ b. Generate a plot in output/part2-q9b.png of the latencies
 """
 
 # TODO
-# POPULATION_SMALL =
-# POPULATION_MEDIUM =
-# POPULATION_LARGE =
-# POPULATION_SINGLE_ROW =
+""
+
+
+POPULATION_SMALL = load_input_small()
+POPULATION_MEDIUM = load_input_medium()
+POPULATION_LARGE = load_input_large()
+POPULATION_SINGLE_ROW = load_input_single_row()
+
 
 def fromvar_small():
-    raise NotImplementedError
+    return population_pipeline(POPULATION_SMALL)
 
 def fromvar_medium():
-    raise NotImplementedError
+    return population_pipeline(POPULATION_MEDIUM)
 
 def fromvar_large():
-    raise NotImplementedError
+    return population_pipeline(POPULATION_LARGE)
 
 def fromvar_latency():
-    raise NotImplementedError
+    df = POPULATION_SINGLE_ROW
+    if len(df) < 2:
+        df = POPULATION_SMALL.head(2)
+    return population_pipeline(df)
 
 def q9a():
     # Add all 6 pipelines for a throughput comparison
+    h = ThroughputHelper()
+    h.add_pipeline("baseline_small", len(POPULATION_SMALL), baseline_small)
+    h.add_pipeline("baseline_medium", len(POPULATION_MEDIUM), baseline_medium)
+    h.add_pipeline("baseline_large", len(POPULATION_LARGE), baseline_large)
+    h.add_pipeline("fromvar_small", len(POPULATION_SMALL), fromvar_small)
+    h.add_pipeline("fromvar_medium", len(POPULATION_MEDIUM), fromvar_medium)
+    h.add_pipeline("fromvar_large", len(POPULATION_LARGE), fromvar_large)
+
     # Generate plot in ouptut/q9a.png
+    throughputs = h.compare_throughput()
+    h.generate_plot("output/part2-q9a.png")
+
     # Return list of 6 throughputs
-    raise NotImplementedError
+    return throughputs
 
 def q9b():
     # Add 2 pipelines for a latency comparison
-    # Generate plot in ouptut/q9b.png
-    # Return list of 2 latencies
-    raise NotImplementedError
+    h = LatencyHelper()
+    h.add_pipeline("baseline_latency", baseline_latency)
+    h.add_pipeline("fromvar_latency", fromvar_latency)
 
+    # Generate plot in ouptut/q9b.png
+    latencies = h.compare_latency()
+    h.generate_plot("output/part2-q9b.png")
+
+    # Return list of 2 latencies
+    return latencies
 """
 10.
 Comment on the plots above!
@@ -454,6 +611,7 @@ Which differs more, throughput or latency?
 What does this experiment show?
 
 ===== ANSWER Q10 BELOW =====
+The fromvar pipelines are consistently faster and acheieve higher throuhghput than the baseline pipelines. Throughput also changes more than latency. The throuhgput for the fromvar pipelines is about 2-3x higher than the baseline ones while the latency difference is only a few milliseconds. The fromvar pipelines run faster since memory access is quicker than file reads. 
 
 ===== END OF Q10 ANSWER =====
 """
@@ -488,13 +646,47 @@ Create a new pipeline:
 def for_loop_pipeline(df):
     # Input: the dataframe from load_input()
     # Return a list of min, median, max, mean, and standard deviation
-    raise NotImplementedError
+    
+    result = {}
+    for _, row in df.iterrows():
+        country = row["entity"]
+        year = row["year"]
+        pop = row["population"]
+
+        if country not in result:
+            result[country] = {"min_year": year, "max_year": year,
+                               "min_pop": pop, "max_pop": pop}
+        else:
+            if year < result[country]["min_year"]:
+                result[country]["min_year"] = year
+                result[country]["min_pop"] = pop
+            if year > result[country]["max_year"]:
+                result[country]["max_year"] = year
+                result[country]["max_pop"] = pop
+
+    # Manually compute the minimum and maximum year for each country.
+    rates = []
+    for country, v in result.items():
+        if v["max_year"] != v["min_year"]:
+            rate = (v["max_pop"] - v["min_pop"]) / (v["max_year"] - v["min_year"])
+            rates.append(rate)
+
+    rates_series = pd.Series(rates)
+    stats = [
+        rates_series.min(),
+        rates_series.median(),
+        rates_series.max(),
+        rates_series.mean(),
+        rates_series.std()
+    ]
+    return [float(x) for x in stats]
 
 def q11():
     # As your answer to this part, call load_input() and then
     # for_loop_pipeline() to return the 5 numbers.
     # (these should match the numbers you got in Q6.)
-    raise NotImplementedError
+    df = load_input("data/population.csv")
+    return for_loop_pipeline(df)
 
 """
 12.
@@ -504,16 +696,19 @@ As before, write 4 pipelines based on the datasets from Q7.
 """
 
 def for_loop_small():
-    raise NotImplementedError
+    df = load_input_small()
+    return for_loop_pipeline(df)
 
 def for_loop_medium():
-    raise NotImplementedError
+    df = load_input_medium()
+    return for_loop_pipeline(df)
 
 def for_loop_large():
-    raise NotImplementedError
+    df = load_input_large()
+    return for_loop_pipeline(df)
 
 def for_loop_latency():
-    raise NotImplementedError
+    df = load_input_single_row()
 
 def q12():
     # Don't modify this part
@@ -536,15 +731,33 @@ b. Generate a plot in output/part2-q13b.png of the latencies
 
 def q13a():
     # Add all 6 pipelines for a throughput comparison
+    h = ThroughputHelper()
+    h.add_pipeline("baseline_small", len(POPULATION_SMALL), baseline_small)
+    h.add_pipeline("baseline_medium", len(POPULATION_MEDIUM), baseline_medium)
+    h.add_pipeline("baseline_large", len(POPULATION_LARGE), baseline_large)
+    h.add_pipeline("for_loop_small", len(POPULATION_SMALL), for_loop_small)
+    h.add_pipeline("for_loop_medium", len(POPULATION_MEDIUM), for_loop_medium)
+    h.add_pipeline("for_loop_large", len(POPULATION_LARGE), for_loop_large)
+    throughputs = h.compare_throughput()
+
     # Generate plot in ouptut/q13a.png
+    h.generate_plot("output/part2-q13a.png")
+
     # Return list of 6 throughputs
-    raise NotImplementedError
+    return throughputs
 
 def q13b():
     # Add 2 pipelines for a latency comparison
+    h = LatencyHelper()
+    h.add_pipeline("baseline_latency", baseline_latency)
+    h.add_pipeline("for_loop_latency", for_loop_latency)
+    latencies = h.compare_latency()
+
     # Generate plot in ouptut/q13b.png
+    h.generate_plot("output/part2-q13b.png")
+    
     # Return list of 2 latencies
-    raise NotImplementedError
+    return latencies
 
 """
 14.
@@ -553,20 +766,20 @@ Comment on the results you got!
 14a. Which pipelines is faster in terms of throughput?
 
 ===== ANSWER Q14a BELOW =====
-
+The baseline pipelines are much faster in terms of throughput.
 ===== END OF Q14a ANSWER =====
 
 14b. Which pipeline is faster in terms of latency?
 
 ===== ANSWER Q14b BELOW =====
-
+The for-loop pipeline is slightly faster in latency, but the difference is small.
 ===== END OF Q14b ANSWER =====
 
 14c. Do you notice any other interesting observations?
 What does this experiment show?
 
 ===== ANSWER Q14c BELOW =====
-
+One interesting I noticed is that the vectorized operations handled bigger datasets much more efficiently, while loops got slower as the data grows.
 ===== END OF Q14c ANSWER =====
 """
 
@@ -579,7 +792,7 @@ Which factor that we tested (file vs. variable, vectorized vs. for loop)
 had the biggest impact on performance?
 
 ===== ANSWER Q15 BELOW =====
-
+The vectorized vs. for-loop difference had the biggest impact on performance. Vectorized pipelines were way faster, while reading from a file vs. variable made only a small difference.
 ===== END OF Q15 ANSWER =====
 
 16.
@@ -590,7 +803,7 @@ varies with the size of the input dataset.
 This is an open ended question.)
 
 ===== ANSWER Q16 BELOW =====
-
+As the dataset size increases, throughput also increases since larger batches make better use of system resources
 ===== END OF Q16 ANSWER =====
 
 17.
@@ -601,7 +814,7 @@ throughput is related to latency.
 This is an open ended question.)
 
 ===== ANSWER Q17 BELOW =====
-
+In general, higher throughput corresponds to lower latency for the same operation. Pipelines that can handle more data per second also tend to complete each task faster.
 ===== END OF Q17 ANSWER =====
 """
 
@@ -721,3 +934,4 @@ Main function
 
 if __name__ == '__main__':
     log_answer("PART 2", PART_2_PIPELINE)
+
