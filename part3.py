@@ -41,6 +41,9 @@ get uploaded when you submit.
 
 # You may need to conda install requests or pip3 install requests
 import requests
+import subprocess
+import os 
+import shutil
 
 def download_file(url, filename):
     r = requests.get(url)
@@ -48,25 +51,58 @@ def download_file(url, filename):
         f.write(r.content)
 
 def clone_repo(repo_url):
-    # TODO
-    raise NotImplementedError
+    repo_name = repo_url.split("/")[-1]
+    if not os.path.exists(repo_name):
+        subprocess.run(["git", "clone", repo_url], check=True)
 
-def run_script(script_path, data_path):
+def run_script(script_path, data_path, cwd=None):
     # TODO
-    raise NotImplementedError
+    subprocess.run(["python3", script_path, data_path], check=True, cwd=cwd)
+
 
 def setup(repo_url, data_url, script_path):
     # TODO
-    raise NotImplementedError
+    clone_repo(repo_url)
+
+    repo_name = repo_url.split("/")[-1]
+    repo_dir = os.path.join(os.getcwd(), repo_name)
+
+    # prepare the data path inside the cloned repo
+    os.makedirs(os.path.join(repo_dir, "data"), exist_ok=True)
+    data_path = os.path.join(repo_dir, "data", "test-input.txt")
+
+    # download dataset into the cloned repo
+    download_file(data_url, data_path)
+
+    # run the script inside the repo without changing directories (output kept printing to cloned part3.txt not main)
+    run_script(script_path, data_path, cwd=repo_dir)
+    return repo_name
 
 def q1():
     # Call setup as described in the prompt
     # TODO
+    repo_name = setup(
+        "https://github.com/DavisPL-Teaching/119-hw1",
+        "https://raw.githubusercontent.com/DavisPL-Teaching/119-hw1/refs/heads/main/data/test-input.txt",
+        "test-script.py"
+    )
+
     # Read the file test-output.txt to a string
     # TODO
+    # Copy output file from cloned repo into main output folder
+    src = os.path.join(repo_name, "output", "test-output.txt")
+    dst = os.path.join("output", "test-output.txt")
+    os.makedirs("output", exist_ok=True)
+    shutil.copy(src, dst)
+
+    with open(dst) as f:
+        result = int(f.read().strip())
     # Return the integer value of the output
-    # TODO
-    raise NotImplementedError
+    return result
+    if __name__ == "__main__":
+        print(q1())
+    
+
 
 """
 2.
@@ -78,13 +114,13 @@ a. When might you need to use a script like setup() above in
 this scenario?
 
 === ANSWER Q2a BELOW ===
-
+A script like setup() would be useful for automating the project’s initialization and data refresh process. Instead of each team member menually downloading new data and cloning the repo, the setup() script does all these automatically.
 === END OF Q2a ANSWER ===
 
 Do you see an alternative to using a script like setup()?
 
 === ANSWER Q2b BELOW ===
-
+A simpler alternative would be to just write down the steps in a short README file and have everyone follow them manually. Another option is to use a shared Google Colab or Jupyter notebook that already has the setup code inside, so running the notebook updates everything without a separate script.
 === END OF Q2b ANSWER ===
 
 3.
@@ -126,14 +162,18 @@ any packages?
 
 def setup_for_new_machine():
     # TODO
-    raise NotImplementedError
+    subprocess.run(["pip3", "install", "--upgrade", "pip"], check=True)
+    subprocess.run(["pip3", "install", "requests"], check=True)
+    subprocess.run(["pip3", "install", "pandas"], check=True)
+    subprocess.run(["pip3", "install", "matplotlib"], check=True)
+    subprocess.run(["pip3", "install", "pytest"], check=True)
 
 def q3():
     # As your answer, return a string containing
     # the operating system name that you assumed the
     # new machine to have.
     # TODO
-    raise NotImplementedError
+    return "macOS"
     # os =
     return os
 
@@ -147,7 +187,7 @@ scripts like setup() and setup_for_new_machine()
 in their day-to-day jobs?
 
 === ANSWER Q4 BELOW ===
-
+I think that data scientists would write setup scripts around 10-20% of the time mostly when they are starting new projects or collaborating across different machines. 
 === END OF Q4 ANSWER ===
 
 5.
@@ -164,7 +204,7 @@ If you don't have a friend's machine, please speculate about
 what might happen if you tried. You can guess.
 
 === ANSWER Q5 BELOW ===
-
+I didn’t actually run the script on another person’s computer, but if I did, I think it would probably fail the first time because my friend’s machine might not have all the same permissions or paths set up. I remember definitely having a lot of troubling downloading all the packages and setting up the codespace I needed for this class, so I don't expect it to be simple.
 === END OF Q5 ANSWER ===
 
 ===== Questions 6-9: A comparison of shell vs. Python =====
@@ -177,6 +217,7 @@ Let's import the part2 module:
 
 import part2
 import pandas as pd
+import matplotlib.pyplot as plt
 
 """
 Write two versions of a script that takes in the population.csv
@@ -222,19 +263,24 @@ with:
 
 def pipeline_shell():
     # TODO
-    raise NotImplementedError
+    output = os.popen("cat data/population.csv | tail -n +2 | wc -l").read()
     # Return resulting integer
+    return int(output.strip())
 
 def pipeline_pandas():
     # TODO
-    raise NotImplementedError
+    df = pd.read_csv("data/population.csv")
     # Return resulting integer
+    return len(df)
 
 def q6():
     # As your answer to this part, check that both
     # integers are the same and return one of them.
     # TODO
-    raise NotImplementedError
+    shell_count = pipeline_shell()
+    pandas_count = pipeline_pandas()
+    assert shell_count == pandas_count, "no match"
+    return shell_count
 
 """
 Let's do a performance comparison between the two methods.
@@ -253,7 +299,21 @@ def q7():
     # [throughput for shell, throughput for pandas]
     # (in rows per second)
     # TODO
-    raise NotImplementedError
+    h = part2.ThroughputHelper()
+
+    # both pipelines for comparison
+    h.add_pipeline("Shell", 1, lambda: pipeline_shell())
+    h.add_pipeline("Pandas", 1, lambda: pipeline_pandas())
+
+    # measure throughput
+    throughputs = h.compare_throughput()
+
+    # plot
+    os.makedirs("output", exist_ok=True)
+    h.generate_plot("output/part3-q7.png")
+
+    # Return list of two floats
+    return throughputs
 
 """
 8. Latency
@@ -272,14 +332,28 @@ def q8():
     # [latency for shell, latency for pandas]
     # (in milliseconds)
     # TODO
-    raise NotImplementedError
+    h = part2.LatencyHelper()
+
+ 
+    h.add_pipeline("Shell", lambda: pipeline_shell())
+    h.add_pipeline("Pandas", lambda: pipeline_pandas())
+
+    # measure latency
+    latencies = h.compare_latency()
+
+    # save plot
+    os.makedirs("output", exist_ok=True)
+    h.generate_plot("output/part3-q8.png")
+
+    # return list of two floats
+    return latencies
 
 """
 9. Which method is faster?
 Comment on anything else you notice below.
 
 === ANSWER Q9 BELOW ===
-
+The Shell pipeline has higher throughput and lower latency than the Pandas pipeline, meaning it processes rows more quickly and takes less time per row. 
 === END OF Q9 ANSWER ===
 """
 

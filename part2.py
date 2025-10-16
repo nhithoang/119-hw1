@@ -849,12 +849,61 @@ and generate plots for each of these in the following files:
 """
 
 # Extra credit (optional)
+# - the cost of random sampling vs. the cost of getting rows from the DataFrame manually
+import pandasql as ps
 
+df = pd.read_csv("data/population.csv")
+NUM_RUNS = 10  # for average calc
+
+# Random Sampling 
+def random_sampling_small():
+    _ = df.sample(n=100)
+
+def random_sampling_medium():
+    _ = df.sample(n=1000)
+
+def random_sampling_large():
+    _ = df.sample(n=10000)
+
+# Manual Row Access 
+def manual_access_small():
+    _ = df.iloc[:100]
+
+def manual_access_medium():
+    _ = df.iloc[:1000]
+
+def manual_access_large():
+    _ = df.iloc[:10000]
+
+# Throughput comparison
 def extra_credit_a():
-    raise NotImplementedError
+    h = ThroughputHelper()
 
+    # Random sampling
+    h.add_pipeline("Random Sampling (100)", len(df), lambda: random_sampling_small())
+    h.add_pipeline("Random Sampling (1k)", len(df), lambda: random_sampling_medium())
+    h.add_pipeline("Random Sampling (10k)", len(df), lambda: random_sampling_large())
+
+    # Manual access
+    h.add_pipeline("Manual Access (100)", len(df), lambda: manual_access_small())
+    h.add_pipeline("Manual Access (1k)", len(df), lambda: manual_access_medium())
+    h.add_pipeline("Manual Access (10k)", len(df), lambda: manual_access_large())
+
+    throughputs = h.compare_throughput()
+    h.generate_plot("output/part2-ec-a.png")
+    return throughputs
+
+# Latency comparison
 def extra_credit_b():
-    raise NotImplementedError
+    h = LatencyHelper()
+
+    h.add_pipeline("Random Sampling", lambda: random_sampling_small())
+    h.add_pipeline("Manual Access", lambda: manual_access_small())
+
+    latencies = h.compare_latency()
+    h.generate_plot("output/part2-ec-b.png")
+    return latencies
+
 
 """
 ===== Wrapping things up =====

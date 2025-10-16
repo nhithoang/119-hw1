@@ -1,7 +1,7 @@
 q1,3
 q2,True
 q3a,False
-q4,['Durham University', 'University of Cambridge', 'Osaka University', 'The University of Western Australia', 'Delft University of Technology']
+q4,['The University of Hong Kong', 'The University of New South Wales (UNSW Sydney)', 'Brown University', 'Shanghai Jiao Tong University', 'Imperial College London']
 q5a,[100, 100, 100, 100, 100, 100, 100, 100]
 q5b,[100, 100, 100, 100, 100, 100, 100, 100]
 q5c,800

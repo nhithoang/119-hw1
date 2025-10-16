@@ -187,6 +187,7 @@ def q3(dfs):
     # - that the set of university names in each year is the same
     # Return:
     # - True if they are the same, and False otherwise.
+
     same_universities = (
         set(dfs[0]['university']) == set(dfs[1]['university']) == set(dfs[2]['university'])
     )
@@ -281,8 +282,9 @@ Example: if there are 5 non-null values in the first column, 3 in the second, 4 
 
 def q5a(dfs):
     # TODO
+
     df_2021 = dfs[2]
-    # df_2021.info()
+    df_2021.info()
 
     # Remember to return the list here
     # (Since .info() does not return any values,
@@ -436,10 +438,12 @@ As your answer, return the count for "USA" in 2021.
 def q8a(dfs):
     # Enter Code here
     # TODO
+    
     for i, df in enumerate(dfs, start=2019):
         counts = df["region"].value_counts()
         print(f"\nTop 100 count by region in {i}:")
         print(counts)
+
     # Remember to return the count here
     usa_count_2021 = dfs[2]["region"].value_counts().get("USA", 0)
     return usa_count_2021
